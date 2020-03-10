@@ -1,0 +1,134 @@
+# Java Gradle CircleCI 2.1 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-java/ for more details
+#
+version: 2.1
+# Specify all the orbs that are used here, only supported in version 2.1 and up
+# For more information, see https://circleci.com/orbs/registry/
+orbs:
+  aws-ecr: circleci/aws-ecr@6.0.0
+  aws-ecs: circleci/aws-ecs@0.0.8
+
+jobs:
+  build:
+
+    docker:
+      # specify the version you desire here
+      - image: circleci/openjdk:11-jdk
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+	  
+	  # FYI
+	  #- image: $DOCKER_MARKLOGIC_IMAGE
+      #auth:
+      # username: $DOCKER_USER
+      #password: $DOCKER_PASSWORD
+      #environment:
+      # MARKLOGIC_INIT: true
+      #MARKLOGIC_ADMIN_USERNAME: $MARKLOGIC_TEST_USERNAME
+      #MARKLOGIC_ADMIN_PASSWORD: $MARKLOGIC_TEST_PASSWORD
+
+    working_directory: ~/repo
+
+    environment:
+      # Customize the JVM maximum heap limit
+      JVM_OPTS: -Xmx3200m
+      TERM: dumb
+
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      #dockerize
+      - run:
+          name: install dockerize
+          command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+          environment:
+            DOCKERIZE_VERSION: v0.3.0
+      - run:
+          name: start marklogic
+          command: |
+            docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+            docker run -d -it -p7997:7997 -p 8001:8001 -p 8002:8002 -p 8200:8200 -p 8201:8201 -p 8000:8000 $DOCKER_MARKLOGIC_IMAGE
+            dockerize -wait tcp://localhost:7997 -timeout 12m
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "build.gradle" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+
+      - run: gradle dependencies
+
+      - save_cache:
+          paths:
+            - ~/.gradle
+          key: v1-dependencies-{{ checksum "build.gradle" }}
+
+      # run tests, -i will display log entries at debug level
+      - run: gradle -i build
+      # locate the test results
+      - run:
+          name: Save test results
+          command: |
+            mkdir -p ~/reports/
+            find . -type f -or -type d -regex ".*/build/reports.*" -exec cp -r {} ~/reports/ \;
+          when: always
+      # save test results
+      - store_test_results:
+          path: ~/reports
+      # upload the test results
+      - store_artifacts:
+          path: ~/reports
+      - run:
+          name: Save jar file
+          command: |
+            mkdir -p ~/repo/build/libs
+            find . -type f -name "fetch-service*.jar" -exec cp {} ~/repo/build/libs/ \;
+          when: always
+      # store the jar file temporarily to be used in the deploy job
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build/libs
+  deploy_to_dev:
+    docker:
+      - image: cibuilds/aws
+    environment:
+      AWS_DEFAULT_OUTPUT: json
+      DEPLOY_ENV: dev
+    steps:
+      - checkout
+      # setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
+      # setup Dependencies
+      - run:
+          name: Setup Dependencies
+          command: ./.circleci/setup_dependencies.sh
+      # attach the workspace so we can use the docker image create in the above file
+      - attach_workspace:
+          at: workspace
+      - run:
+          name: Copy jar from saved workspace to staging area
+          command: |
+            mv workspace/build ~/project/applications/fetch-service/
+      # Deploy to ECR
+      - deploy:
+          name: Push application Docker image to ECR and Deploy to ECS
+          command: |
+            ./.circleci/deploy.sh $DEPLOY_ENV
+workflows:
+  build-and-deploy:
+    jobs:
+      - build
+      - deploy_to_dev:
+          context: Artifactory
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
