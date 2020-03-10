@@ -52,7 +52,7 @@ jobs:
           name: start marklogic
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-            docker run -d -it -p7997:7997 -p 8001:8001 -p 8002:8002 -p 8200:8200 -p 8201:8201 -p 8000:8000 $DOCKER_MARKLOGIC_IMAGE
+            docker run -d -it -p7997:7997 -p 8001:8001 -p 8002:8002 -p 8200:8200 -p 8201:8201 -p 8000:8000 -e MARKLOGIC_INIT=true -e MARKLOGIC_ADMIN_USERNAME=$MARKLOGIC_ADMIN_USERNAME -e MARKLOGIC_ADMIN_PASSWORD=$MARKLOGIC_ADMIN_PASSWORD $DOCKER_MARKLOGIC_IMAGE
             dockerize -wait tcp://localhost:7997 -timeout 12m
 workflows:
   build-and-deploy:
