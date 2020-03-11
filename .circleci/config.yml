@@ -19,6 +19,10 @@ jobs:
         auth:
           username: $DOCKER_USER  # can specify string literal values
           password: $DOCKER_PASSWORD  # or project environment variable reference
+        environment:
+          MARKLOGIC_INIT: true
+          MARKLOGIC_ADMIN_USERNAME: $MARKLOGIC_ADMIN_USERNAME
+          MARKLOGIC_ADMIN_PASSWORD: $MARKLOGIC_ADMIN_PASSWORD
 
     working_directory: /tmp
 
