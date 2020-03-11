@@ -12,32 +12,28 @@ orbs:
 jobs:
   build:
 
-    machine: true
+    docker:
+      # specify the version you desire here
+      - image: circleci/openjdk:11-jdk
 
     working_directory: ~/
 
     steps:
-      - checkout
+      #- setup_remote_docker:
+      #    docker_layer_caching: false
 
       - run:
           name: start marklogic
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
             docker run -d --name marklogic -it -p 7997:7997 -p 8001:8001 -p 8002:8002 -p 8200:8200 -p 8201:8201 -p 8000:8000 -e MARKLOGIC_INIT=true -e MARKLOGIC_ADMIN_USERNAME=$MARKLOGIC_ADMIN_USERNAME -e MARKLOGIC_ADMIN_PASSWORD=$MARKLOGIC_ADMIN_PASSWORD $DOCKER_MARKLOGIC_IMAGE
-            sleep 15
-            while true; do status=`curl -sS --retry 10 http://localhost:7997 | grep Healthy`; if [[ "$status" = "Healthy" ]]; then echo "MarkLogic ready"; break; else echo "waiting..."; sleep 1; fi; done
+            sleep 10
+            while true; do status=`docker exec marklogic curl -sS --retry 10 http://localhost:7997 | grep Healthy`; if [[ "$status" = "Healthy" ]]; then echo "MarkLogic ready"; break; else echo "waiting..."; sleep 1; fi; done
       
       - run:
           name: check marklogic
           command: |
             curl -sS --retry 10 http://localhost:7997
-
-      - run: gradle dependencies
-
-      - save_cache:
-          paths:
-            - ~/.gradle
-          key: v1-dependencies-{{ checksum "build.gradle" }}
 
 workflows:
   build-and-deploy:

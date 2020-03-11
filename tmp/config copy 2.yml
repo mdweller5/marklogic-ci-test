@@ -1,0 +1,42 @@
+# Java Gradle CircleCI 2.1 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-java/ for more details
+#
+version: 2.1
+# Specify all the orbs that are used here, only supported in version 2.1 and up
+# For more information, see https://circleci.com/orbs/registry/
+orbs:
+  aws-ecr: circleci/aws-ecr@6.0.0
+  aws-ecs: circleci/aws-ecs@0.0.8
+
+jobs:
+  build:
+
+    docker:
+      # specify the version you desire here
+      - image: circleci/openjdk:11-jdk
+      - image: store/marklogicdb/marklogic-server:10.0-2-dev-centos
+        auth:
+          username: $DOCKER_USER  # can specify string literal values
+          password: $DOCKER_PASSWORD  # or project environment variable reference
+        environment:
+          MARKLOGIC_INIT: true
+          MARKLOGIC_ADMIN_USERNAME: $MARKLOGIC_ADMIN_USERNAME
+          MARKLOGIC_ADMIN_PASSWORD: $MARKLOGIC_ADMIN_PASSWORD
+
+    working_directory: ~/
+
+    steps:
+      - checkout
+      - run: ls -al
+
+      - run:
+        name: check marklogic
+        command: |
+          sleep 10
+          curl -sS --retry 10 http://localhost:7997
+
+workflows:
+  build-and-deploy:
+    jobs:
+      - build
