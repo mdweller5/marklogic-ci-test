@@ -58,7 +58,8 @@ jobs:
             echo "test" > /tmp/logs/test.log
             docker exec -it marklogic cat /var/opt/MarkLogic/Logs/ErrorLog.txt > /tmp/logs/ErrorLog.txt
       - store_artifacts:
-          path: /tmp/logs
+          path: /tmp/logs/ErrorLog.txt
+          destination: ErrorLog.txt
     
 workflows:
   build-and-deploy:
