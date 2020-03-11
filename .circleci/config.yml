@@ -49,7 +49,10 @@ jobs:
             - ~/.gradle
           key: v1-dependencies-{{ checksum "build.gradle" }}
 
-      - run: ./gradlew -i mlDeploy
+      - run:
+          name: deploy data hub
+          command: |
+            ./gradlew -i -PenvironmentName=test mlDeploy
 
 workflows:
   build-and-deploy:
