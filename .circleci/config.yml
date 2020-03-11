@@ -24,10 +24,7 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: false
       #dockerize
-      #docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-      #docker run -d --name marklogic -it -p7997:7997 -p 8001:8001 -p 8002:8002 -p 8200:8200 -p 8201:8201 -p 8000:8000 -e MARKLOGIC_INIT=true -e MARKLOGIC_ADMIN_USERNAME=$MARKLOGIC_ADMIN_USERNAME -e MARKLOGIC_ADMIN_PASSWORD=$MARKLOGIC_ADMIN_PASSWORD $DOCKER_MARKLOGIC_IMAGE
-      #dockerize -wait tcp://localhost:7997 -timeout 30s
-      #docker exec -it marklogic cat /var/opt/MarkLogic/Logs/ErrorLog.txt > /tmp/logs/ErrorLog.txt
+      # dockerize -wait tcp://localhost:7997 -timeout 30s
 
       - run:
           name: install dockerize
@@ -38,15 +35,14 @@ jobs:
           name: start marklogic
           command: |
             mkdir -p /tmp/logs
-            echo "test" > /tmp/logs/test.log
-            
+            docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+            docker run -d --name marklogic -it -p7997:7997 -p 8001:8001 -p 8002:8002 -p 8200:8200 -p 8201:8201 -p 8000:8000 -e MARKLOGIC_INIT=true -e MARKLOGIC_ADMIN_USERNAME=$MARKLOGIC_ADMIN_USERNAME -e MARKLOGIC_ADMIN_PASSWORD=$MARKLOGIC_ADMIN_PASSWORD $DOCKER_MARKLOGIC_IMAGE
+            sleep 20
+            docker exec -it marklogic cat /var/opt/MarkLogic/Logs/ErrorLog.txt > /tmp/logs/ErrorLog.txt
       - store_artifacts:
           path: /tmp/logs/ErrorLog.txt
-          destination: ErrorLog.txt
-      - store_artifacts:
-          path: /tmp/logs/test.log
-          destination: test.log
-      
+          destination: ErrorLog.txt      
+          
 workflows:
   build-and-deploy:
     jobs:
