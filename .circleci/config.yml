@@ -38,7 +38,7 @@ jobs:
             docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
             docker run -d --name marklogic -it -p 7997:7997 -p 8001:8001 -p 8002:8002 -p 8200:8200 -p 8201:8201 -p 8000:8000 -e MARKLOGIC_INIT=true -e MARKLOGIC_ADMIN_USERNAME=$MARKLOGIC_ADMIN_USERNAME -e MARKLOGIC_ADMIN_PASSWORD=$MARKLOGIC_ADMIN_PASSWORD $DOCKER_MARKLOGIC_IMAGE
             sleep 30
-            docker exec marklogic curl --retry 10 --retry-connrefused http://localhost:7997
+            docker exec marklogic curl --retry 10 http://localhost:7997
             docker exec marklogic cat /var/opt/MarkLogic/Logs/ErrorLog.txt > /tmp/logs/ErrorLog.txt
       - store_artifacts:
           path: /tmp/logs/ErrorLog.txt
