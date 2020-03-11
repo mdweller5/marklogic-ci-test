@@ -15,20 +15,25 @@ jobs:
     docker:
       # specify the version you desire here
       - image: circleci/openjdk:11-jdk
-      - image: store/marklogicdb/marklogic-server:10.0-2-dev-centos
-        auth:
-          username: $DOCKER_USER  # can specify string literal values
-          password: $DOCKER_PASSWORD  # or project environment variable reference
-        environment:
-          MARKLOGIC_INIT: true
-          MARKLOGIC_ADMIN_USERNAME: $MARKLOGIC_ADMIN_USERNAME
-          MARKLOGIC_ADMIN_PASSWORD: $MARKLOGIC_ADMIN_PASSWORD
 
-    working_directory: /tmp
+    working_directory: ~/
 
     steps:
       - checkout
       - run: ls -al
+
+      - run:
+        name: start marklogic
+        command: |
+          docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+          docker run -d --name marklogic -it -p 7997:7997 -p 8001:8001 -p 8002:8002 -p 8200:8200 -p 8201:8201 -p 8000:8000 -e MARKLOGIC_INIT=true -e MARKLOGIC_ADMIN_USERNAME=$MARKLOGIC_ADMIN_USERNAME -e MARKLOGIC_ADMIN_PASSWORD=$MARKLOGIC_ADMIN_PASSWORD $DOCKER_MARKLOGIC_IMAGE
+          sleep 10
+          while true; do status=`docker exec marklogic curl -sS --retry 10 http://localhost:7997 | grep Healthy`; if [[ "$status" = "Healthy" ]]; then echo "MarkLogic ready"; break; else echo "waiting..."; sleep 1; fi; done
+      
+      - run:
+        name: check marklogic
+        command: |
+          curl -sS --retry 10 http://localhost:7997
 
 workflows:
   build-and-deploy:
