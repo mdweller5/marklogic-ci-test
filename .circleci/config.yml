@@ -22,7 +22,7 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: false
 
-    - run:
+      - run:
           name: start marklogic
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
