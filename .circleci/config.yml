@@ -12,37 +12,20 @@ orbs:
 jobs:
   build:
 
-    docker:
-      # specify the version you desire here
-      - image: circleci/openjdk:11-jdk
-
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
-    
-    # FYI
-    #- image: $DOCKER_MARKLOGIC_IMAGE
-      #auth:
-      # username: $DOCKER_USER
-      #password: $DOCKER_PASSWORD
-      #environment:
-      # MARKLOGIC_INIT: true
-      #MARKLOGIC_ADMIN_USERNAME: $MARKLOGIC_TEST_USERNAME
-      #MARKLOGIC_ADMIN_PASSWORD: $MARKLOGIC_TEST_PASSWORD
-
-    working_directory: ~/repo
+    working_directory: /tmp
 
     environment:
-      # Customize the JVM maximum heap limit
-      JVM_OPTS: -Xmx3200m
       TERM: dumb
 
     steps:
-      - checkout
       - setup_remote_docker:
           docker_layer_caching: false
       #dockerize
+      #docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+      #docker run -d --name marklogic -it -p7997:7997 -p 8001:8001 -p 8002:8002 -p 8200:8200 -p 8201:8201 -p 8000:8000 -e MARKLOGIC_INIT=true -e MARKLOGIC_ADMIN_USERNAME=$MARKLOGIC_ADMIN_USERNAME -e MARKLOGIC_ADMIN_PASSWORD=$MARKLOGIC_ADMIN_PASSWORD $DOCKER_MARKLOGIC_IMAGE
+      #dockerize -wait tcp://localhost:7997 -timeout 30s
+      #docker exec -it marklogic cat /var/opt/MarkLogic/Logs/ErrorLog.txt > /tmp/logs/ErrorLog.txt
+
       - run:
           name: install dockerize
           command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
@@ -51,16 +34,16 @@ jobs:
       - run:
           name: start marklogic
           command: |
-            docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-            docker run -d --name marklogic -it -p7997:7997 -p 8001:8001 -p 8002:8002 -p 8200:8200 -p 8201:8201 -p 8000:8000 -e MARKLOGIC_INIT=true -e MARKLOGIC_ADMIN_USERNAME=$MARKLOGIC_ADMIN_USERNAME -e MARKLOGIC_ADMIN_PASSWORD=$MARKLOGIC_ADMIN_PASSWORD $DOCKER_MARKLOGIC_IMAGE
-            dockerize -wait tcp://localhost:7997 -timeout 30s
             mkdir -p /tmp/logs
             echo "test" > /tmp/logs/test.log
-            docker exec -it marklogic cat /var/opt/MarkLogic/Logs/ErrorLog.txt > /tmp/logs/ErrorLog.txt
+            
       - store_artifacts:
           path: /tmp/logs/ErrorLog.txt
           destination: ErrorLog.txt
-    
+      - store_artifacts:
+          path: /tmp/logs/test.log
+          destination: test.log
+      
 workflows:
   build-and-deploy:
     jobs:
