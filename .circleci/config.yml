@@ -20,11 +20,11 @@ jobs:
           username: $DOCKER_USER  # can specify string literal values
           password: $DOCKER_PASSWORD  # or project environment variable reference
 
-  working_directory: /tmp
+    working_directory: /tmp
 
-  steps:
-    - checkout
-    - run: ls -al
+    steps:
+      - checkout
+      - run: ls -al
 
 workflows:
   build-and-deploy:
