@@ -19,9 +19,6 @@ jobs:
     working_directory: ~/
 
     steps:
-      - checkout
-      - run: ls -al
-
       - run:
           name: start marklogic
           command: |
